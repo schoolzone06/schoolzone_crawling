@@ -6,6 +6,32 @@ class SchoolInfo:
     def __init__(self, apiKey):
         self.apiKey = apiKey
 
+    def save_data(self):
+        conn = mysqlConnection.connection_pool
+        cursor = conn.cursor()
+
+        school_list = self.get_list()
+
+        delete_query = "delete from school"
+        cursor.execute(delete_query)
+
+        for element in school_list:
+            office_code = element["ATPT_OFCDC_SC_CODE"] or ""
+            code = element["SD_SCHUL_CODE"] or ""
+            name = element["SCHUL_NM"] or ""
+            domain = element["HMPG_ADRES"] or ""
+            location = element["ORG_RDNMA"] or ""
+
+            insert_query = "insert into school(school_id, school_name, school_domain, school_location, school_office_code) values(%s, %s, %s, %s, %s)"
+            insert_values = (code, name, domain, location, office_code)
+
+            cursor.execute(insert_query, insert_values)
+
+        conn.commit()
+        conn.close()
+
+        print("Success!!")
+
     def get_list(self):
         idx = 1
         info = list()
