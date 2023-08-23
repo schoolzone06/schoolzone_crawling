@@ -19,8 +19,12 @@ class SchoolInfo:
             office_code = element["ATPT_OFCDC_SC_CODE"] or ""
             code = element["SD_SCHUL_CODE"] or ""
             name = element["SCHUL_NM"] or ""
+            location = self.get_sliced_location(element["ORG_RDNMA"] or "")
+
+            if name == "경북나이스고등학교(교육용)":
+                continue
+
             domain = element["HMPG_ADRES"] or ""
-            location = element["ORG_RDNMA"] or ""
 
             insert_query = "insert into school(school_id, school_name, school_domain, school_location, school_office_code) values(%s, %s, %s, %s, %s)"
             insert_values = (code, name, domain, location, office_code)
@@ -59,3 +63,23 @@ class SchoolInfo:
         uri = f"{base_url}{path}"
         response = requests.get(uri, params=params)
         return response.url
+
+    def get_sliced_location(self, location: str):
+        location = location.strip()
+        location = location.replace("  ", " ")
+        state, city = location.split(" ")[0], location.split(" ")[1]
+
+        if "광역시" in state:
+            state = state.replace("광역시", "")
+        elif "특별" in state:
+            if "특별자치시" in state:
+                state = state.replace("특별자치시", "")
+            elif "특별자치도" in state:
+                state = state.replace("특별자치", "")
+            elif "특별시" in state:
+                state = state.replace("특별시", "")
+        elif len(state) == 4:
+            location = list(state)
+            state = location[0] + location[2]
+
+        return state + " " + city
