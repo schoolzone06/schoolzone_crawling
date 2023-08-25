@@ -1,10 +1,12 @@
 import requests
 from db import mysqlConnection
+from urllib.parse import urlparse
 
 
 class SchoolInfo:
     def __init__(self, apiKey):
         self.apiKey = apiKey
+        self.location = ""
 
     def save_data(self):
         conn = mysqlConnection.connection_pool
@@ -20,11 +22,12 @@ class SchoolInfo:
             code = element["SD_SCHUL_CODE"] or ""
             name = element["SCHUL_NM"] or ""
             location = self.get_sliced_location(element["ORG_RDNMA"] or "")
+            self.location = location
 
             if name == "경북나이스고등학교(교육용)":
                 continue
 
-            domain = element["HMPG_ADRES"] or ""
+            domain = self.get_sliced_domain(element.get("HMPG_ADRES", ""))
 
             insert_query = "insert into school(school_id, school_name, school_domain, school_location, school_office_code) values(%s, %s, %s, %s, %s)"
             insert_values = (code, name, domain, location, office_code)
@@ -83,3 +86,18 @@ class SchoolInfo:
             state = location[0] + location[2]
 
         return state + " " + city
+
+    def get_sliced_domain(self, domain):
+        url = urlparse(domain)
+
+        if self.location.split(" ")[0] == "경북" or "school.gyo6.net" in str(url.netloc + url.path):
+            sliced_url = str(url.netloc + url.path)
+        elif not bool(url.scheme):
+            sliced_url = str(url.path)
+        else:
+            sliced_url = str(url.netloc)
+
+        if "www." in sliced_url:
+            sliced_url = sliced_url.replace("www.", "")
+
+        return sliced_url
